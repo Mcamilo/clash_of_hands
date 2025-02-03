@@ -22,47 +22,62 @@ function love.load()
     moveSpeed = 300 -- AI movement speed
     
     function resetGame()
-        local screenWidth, screenHeight = love.graphics.getDimensions()
-        local centerX = screenWidth / 2
-        local spacingX = 300  -- Horizontal spacing between hands
-        local aiY = screenHeight * 0.25
-        local playerY = screenHeight * 0.75
-
         if not players then
+            local screenWidth, screenHeight = love.graphics.getDimensions()
+            local centerX = screenWidth / 2
+            local spacingX = 300  -- Horizontal spacing between hands
+            local aiY = screenHeight * 0.25
+            local playerY = screenHeight * 0.75
+    
+    
+    
             players = {
                 {name = "AI Player", score = 0, xLabel = 750, yLabel = aiY - 200, circles = {
                     {x = centerX - spacingX, y = aiY, origX = centerX - spacingX, origY = aiY, radius = 120, dragging = false, offsetX = 0, offsetY = 0, points = 1},
                     {x = centerX + spacingX, y = aiY, origX = centerX + spacingX, origY = aiY, radius = 120, dragging = false, offsetX = 0, offsetY = 0, points = 1}
                 }},
-                {name = "Human", score = 0, yLabel = playerY + 200, circles = {
+                {name = "Human", score = 0, xLabel = 750, yLabel = playerY + 200, circles = {
                     {x = centerX - spacingX, y = playerY, origX = centerX - spacingX, origY = playerY, radius = 120, dragging = false, offsetX = 0, offsetY = 0, points = 1},
                     {x = centerX + spacingX, y = playerY, origX = centerX + spacingX, origY = playerY, radius = 120, dragging = false, offsetX = 0, offsetY = 0, points = 1}
                 }}
             }
         else
+            -- Reset points & positions without modifying x and y
             for _, player in ipairs(players) do
                 for _, circle in ipairs(player.circles) do
                     circle.points = 1
-                    circle.x, circle.y = circle.origX, circle.origY
+                    circle.x, circle.y = circle.origX, circle.origY -- Reset position only to original values
+                    circle.dragging = false
                 end
             end
         end
-
-        currentPlayerIndex = 1
+    
+        if not startingPlayerIndex then
+            startingPlayerIndex = 1
+        else
+            startingPlayerIndex = (startingPlayerIndex % #players) + 1
+        end
+        currentPlayerIndex = startingPlayerIndex
+    
         gameOver = false
         winner = nil
         aiState = AI_STATES.IDLE
     end
+    
     
     resetGame()
 end
 
 
 function love.update(dt)
-    if gameState == "playing" and not gameOver then
+    if gameState == "playing" then
+        if gameOver then
+            return
+        end
+
         if currentPlayerIndex == 1 then -- AI's Turn
             updateAI(dt)
-        else -- Human player's turn
+        else
             for _, circle in ipairs(players[currentPlayerIndex].circles) do
                 if circle.dragging then
                     circle.x = love.mouse.getX() - circle.offsetX
@@ -73,7 +88,8 @@ function love.update(dt)
     end
 end
 
--- Improved AI FSM LOGIC
+
+-- AI FSM LOGIC
 function updateAI(dt)
     local aiPlayer = players[1] -- AI Player
 
@@ -124,6 +140,7 @@ function selectBestAICircle()
 end
 
 -- AI Selects the Best Target (Prioritizes 4-Finger Hands)
+-- TODO: implement split
 function selectBestTarget()
     local bestTarget = nil
     for _, circle in ipairs(players[2].circles) do
@@ -252,16 +269,17 @@ function love.mousereleased(x, y, button, istouch, presses)
                             end
                         end
 
-                        -- Handle split (same player)
-                        if players[currentPlayerIndex] == otherPlayer then -- Ensure it's the same player
-                            if circle.points % 2 == 0 then
-                                local hand1, hand2 = currentPlayer.circles[1], currentPlayer.circles[2]
-                        
-                                if hand1 == circle and hand2.points == 0 then
+                        -- Handle split (same player, only when touching own empty hand)
+                        if players[currentPlayerIndex] == otherPlayer and distance < circle.radius * 2 then
+                            local hand1, hand2 = currentPlayer.circles[1], currentPlayer.circles[2]
+
+                            -- Check if the dragging hand has even points and is touching the empty hand
+                            if circle.points > 0 and circle.points % 2 == 0 then
+                                if hand1 == circle and hand2 == other and hand2.points == 0 then
                                     hand2.points = hand1.points / 2
                                     hand1.points = hand2.points
                                     switchTurn = true
-                                elseif hand2 == circle and hand1.points == 0 then
+                                elseif hand2 == circle and hand1 == other and hand1.points == 0 then
                                     hand1.points = hand2.points / 2
                                     hand2.points = hand1.points
                                     switchTurn = true
@@ -275,18 +293,20 @@ function love.mousereleased(x, y, button, istouch, presses)
             end
         end
 
-        if switchTurn then
-            currentPlayerIndex = (currentPlayerIndex % #players) + 1
-        end
-
         for i, player in ipairs(players) do
             if player.circles[1].points == 0 and player.circles[2].points == 0 then
                 gameOver = true
                 local winningPlayer = players[(i % #players) + 1]
                 winner = winningPlayer.name
                 winningPlayer.score = winningPlayer.score + 1
+                return
             end
+        end
+
+        if switchTurn then
+            currentPlayerIndex = (currentPlayerIndex % #players) + 1
         end
     end
 end
+
 
