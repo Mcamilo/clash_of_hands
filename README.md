@@ -1,5 +1,11 @@
 # Clash of Hands
 
+## Play the Game
+You can play **Clash of Hands** on **Itch.io**:  
+[https://matheus-camilo.itch.io/clash-of-hands](https://matheus-camilo.itch.io/clash-of-hands)
+
+---
+
 **Objective:**  
 The goal is to **eliminate both of the opponent's hands** (i.e., make them have 5 or more fingers) before they do the same to you.
 
@@ -63,8 +69,4 @@ Two players take turns—**Human vs. AI**.
 
 ---
 
-## Play the Game
-You can play **Clash of Hands** on **Itch.io**:  
-[https://matheus-camilo.itch.io/clash-of-hands](https://matheus-camilo.itch.io/clash-of-hands)
 
----
